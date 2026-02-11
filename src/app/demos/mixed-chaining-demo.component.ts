@@ -1,5 +1,15 @@
-import { Component, signal, Input, Pipe } from '@angular/core';
-import { JsonPipe } from '@angular/common';
+/**
+ * Mixed Usage Demo: Legacy + Native Optional Chaining Side by Side
+ *
+ * Shows that components with different optionalChainingSemantics can coexist
+ * in the same application:
+ *
+ * - LegacyChainingComponent uses `optionalChainingSemantics: 'legacy'` (default)
+ * - NativeChainingComponent uses `optionalChainingSemantics: 'native'`
+ * - Both render side-by-side showing the behavioral differences
+ */
+import {Component, signal, Input, Pipe} from '@angular/core';
+import {JsonPipe} from '@angular/common';
 
 interface Config {
   theme?: string;
@@ -15,11 +25,15 @@ interface Config {
 
 @Pipe({ name: 'stringifyNullish', standalone: true })
 export class StringifyNullishPipe {
-  transform(value: unknown): string {
+  transform(value: any): string {
     return value === null ? 'null' : value === undefined ? 'undefined' : String(value);
   }
 }
 
+/**
+ * Legacy semantics component.
+ * optionalChainingSemantics: 'legacy' (default behavior, can be omitted)
+ */
 @Component({
   selector: 'app-legacy-chaining',
   optionalChainingSemantics: 'legacy',
@@ -28,11 +42,11 @@ export class StringifyNullishPipe {
     <div class="panel legacy">
       <h3>Legacy Component</h3>
       <span class="badge legacy-badge">optionalChainingSemantics: 'legacy'</span>
-      <p class="small">a?.b returns null when a is nullish</p>
+      <p class="small">a?.b returns <strong>null</strong> when a is nullish</p>
 
       <div class="result-row">
         <code>config?.theme</code>
-        <span class="value">{{ config()?.theme | stringifyNullish }}</span>
+        <span class="value">{{ config()?.theme  | stringifyNullish }}</span>
       </div>
       <div class="result-row">
         <code>config?.api?.baseUrl</code>
@@ -41,6 +55,10 @@ export class StringifyNullishPipe {
       <div class="result-row">
         <code>config?.api?.timeout</code>
         <span class="value">{{ config()?.api?.timeout | stringifyNullish }}</span>
+      </div>
+      <div class="result-row">
+        <code>config?.api?.headers?.authorization</code>
+        <span class="value">{{ config()?.api?.headers?.authorization | stringifyNullish }}</span>
       </div>
 
       <div class="comparison-box">
@@ -86,15 +104,19 @@ export class LegacyChainingComponent {
   }
 }
 
+/**
+ * Native semantics component.
+ * optionalChainingSemantics: 'native' (ECMAScript behavior)
+ */
 @Component({
   selector: 'app-native-chaining',
-  optionalChainingSemantics: 'native',
+  optionalChainingSemantics: 'native',  // per-component override
   imports: [StringifyNullishPipe],
   template: `
     <div class="panel native">
       <h3>Native Component</h3>
       <span class="badge native-badge">optionalChainingSemantics: 'native'</span>
-      <p class="small">a?.b returns undefined when a is nullish</p>
+      <p class="small">a?.b returns <strong>undefined</strong> when a is nullish</p>
 
       <div class="result-row">
         <code>config?.theme</code>
@@ -107,6 +129,10 @@ export class LegacyChainingComponent {
       <div class="result-row">
         <code>config?.api?.timeout</code>
         <span class="value">{{ config()?.api?.timeout | stringifyNullish }}</span>
+      </div>
+      <div class="result-row">
+        <code>config?.api?.headers?.authorization</code>
+        <span class="value">{{ config()?.api?.headers?.authorization | stringifyNullish }}</span>
       </div>
 
       <div class="comparison-box">
@@ -152,25 +178,32 @@ export class NativeChainingComponent {
   }
 }
 
+/**
+ * Parent container: shows both legacy and native components side by side
+ * with the same data, proving they can be mixed and matched.
+ */
 @Component({
   selector: 'app-mixed-chaining-demo',
   imports: [LegacyChainingComponent, NativeChainingComponent, JsonPipe],
   template: `
     <div class="demo-container">
-      <h2>Mix and Match: Legacy and Native Optional Chaining</h2>
+      <h2>Mix and Match: Legacy + Native Optional Chaining</h2>
       <p class="description">
-        Both components receive the same data but use different optional chaining semantics.
+        Both components receive the <strong>same data</strong> but use different
+        <code>optionalChainingSemantics</code>. They coexist in the same app,
+        proving per-component override works alongside the project-wide setting.
       </p>
 
       <div class="config-section">
         <h3>tsconfig.json (project-wide)</h3>
-        <pre class="config-code">{
-  "angularCompilerOptions": {
+        <pre class="config-code">{{ '{' }}
+  "angularCompilerOptions": {{ '{' }}
     "strictOptionalChainingSemantics": true
-  }
-}</pre>
+  {{ '}' }}
+{{ '}' }}</pre>
         <p class="config-note">
-          Components can override via optionalChainingSemantics in the decorator.
+          Each component can override via <code>optionalChainingSemantics: 'legacy'</code>
+          or <code>'native'</code> in its &#64;Component decorator.
         </p>
       </div>
 
@@ -197,14 +230,14 @@ export class NativeChainingComponent {
             <span class="step-num">1</span>
             <div>
               <strong>Enable diagnostic warning</strong>
-              <p><code>"legacySafeNavigationUsage": "warning"</code></p>
+              <p><code>"legacySafeNavigationUsage": "warning"</code> in extended diagnostics</p>
             </div>
           </div>
           <div class="step">
             <span class="step-num">2</span>
             <div>
               <strong>Run migration schematic</strong>
-              <p><code>ng generate @angular/core:optional-chaining-semantics-migration</code></p>
+              <p><code>ng generate &#64;angular/core:optional-chaining-semantics-migration</code></p>
             </div>
           </div>
           <div class="step">
@@ -218,25 +251,342 @@ export class NativeChainingComponent {
             <span class="step-num">4</span>
             <div>
               <strong>Per-component override</strong>
-              <p>Use optionalChainingSemantics to opt back to legacy if needed</p>
+              <p>Override individual components that need legacy behavior</p>
             </div>
           </div>
         </div>
       </div>
 
+      <!-- Migration Examples -->
       <div class="examples-section">
-        <h3>Migration Examples</h3>
+        <h3>Migration Examples (from actual schematic tests)</h3>
+
+        <div class="example-group safe">
+          <h4>Safe Contexts (no change needed)</h4>
+          <p class="group-description">
+            These expressions behave identically with null or undefined —
+            the migration schematic leaves them as-is.
+          </p>
+
+          <div class="example-row">
+            <div class="before"><code>{{ '{{ a?.b }}' }}</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ '{{ a?.b }}' }}</code></div>
+            <div class="reason">Interpolation renders both null and undefined as ""</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>{{ '{{ a?.b?.c?.d }}' }}</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ '{{ a?.b?.c?.d }}' }}</code></div>
+            <div class="reason">Deep chains in interpolation — same rendering</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>{{ "{{ a?.b ?? 'fallback' }}" }}</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ "{{ a?.b ?? 'fallback' }}" }}</code></div>
+            <div class="reason">?? catches both null and undefined</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>{{ "{{ a?.b || 'default' }}" }}</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ "{{ a?.b || 'default' }}" }}</code></div>
+            <div class="reason">|| treats both as falsy</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>{{ '{{ a?.b && something }}' }}</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ '{{ a?.b && something }}' }}</code></div>
+            <div class="reason">Both are falsy — same short-circuit</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>{{ '{{ !a?.b }}' }}</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ '{{ !a?.b }}' }}</code></div>
+            <div class="reason">Negation: both falsy = true</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>{{ '{{ a?.b == null }}' }}</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ '{{ a?.b == null }}' }}</code></div>
+            <div class="reason">Loose equality: null == undefined is true</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>{{ '{{ a?.b != null }}' }}</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ '{{ a?.b != null }}' }}</code></div>
+            <div class="reason">Loose inequality: same rule</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>{{ '{{ a?.b ? x : y }}' }}</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ '{{ a?.b ? x : y }}' }}</code></div>
+            <div class="reason">Condition position — truthiness check only</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>&#64;if (user?.address)</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>&#64;if (user?.address)</code></div>
+            <div class="reason">&#64;if condition: both null and undefined are falsy</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>&#64;if (a?.b?.c) {{ '{' }}...{{ '}' }} &#64;else if (a?.d)</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>&#64;if (a?.b?.c) {{ '{' }}...{{ '}' }} &#64;else if (a?.d)</code></div>
+            <div class="reason">&#64;else if: also a truthiness check, safe</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>&#64;if (user?.address; as addr)</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>&#64;if (user?.address; as addr)</code></div>
+            <div class="reason">&#64;if with alias: condition is still a truthiness check</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>&#64;defer (when config?.ready)</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>&#64;defer (when config?.ready)</code></div>
+            <div class="reason">&#64;defer when: boolean-like condition, safe</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>[class.active]="item?.selected"</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>[class.active]="item?.selected"</code></div>
+            <div class="reason">Class binding: truthy/falsy check, safe</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>[hidden]="!user?.isVisible"</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>[hidden]="!user?.isVisible"</code></div>
+            <div class="reason">Property binding with negation: safe</div>
+          </div>
+        </div>
+
+        <div class="example-group sensitive">
+          <h4>Sensitive Contexts (MUST convert — ternary form)</h4>
+          <p class="group-description">
+            These expressions would behave differently with null vs undefined.
+            The migration converts them to explicit ternary guards.
+          </p>
+
+          <div class="example-row">
+            <div class="before"><code>{{ '{{ a?.b }}' }} in strict equality</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ '{{ a != null ? a.b : null }}' }}</code></div>
+            <div class="reason">Preserves null return for === null checks</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>{{ '{{ a?.b?.c }}' }} in sensitive ctx</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ '{{ a != null ? (a.b != null ? a.b.c : null) : null }}' }}</code></div>
+            <div class="reason">Deep chain: nested ternary guards</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>{{ '{{ a.b?.c?.d }}' }} mixed chain</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ '{{ a.b != null ? (a.b.c != null ? a.b.c.d : null) : null }}' }}</code></div>
+            <div class="reason">Guards start at first safe nav, not before</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>{{ '"prefix" + a?.b' }}</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ '"prefix" + (a != null ? a.b : null)' }}</code></div>
+            <div class="reason">"prefixnull" vs "prefixundefined" would differ</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>{{ '{{ a?.b === null }}' }}</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ '{{ (a != null ? a.b : null) === null }}' }}</code></div>
+            <div class="reason">null === null is true, undefined === null is false</div>
+          </div>
+        </div>
+
+        <div class="example-group best-effort">
+          <h4>Best Effort Mode (?? null fallback)</h4>
+          <p class="group-description">
+            When a <code>?.</code> expression can't be converted to a ternary
+            (method calls, keyed access, pipes), best-effort mode appends <code>?? null</code>.
+            This ensures the return value remains null instead of undefined.
+          </p>
+
+          <div class="example-row">
+            <div class="before"><code>{{ 'a?.method()' }}</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ 'a?.method() ?? null' }}</code></div>
+            <div class="reason">Method calls: can't build ternary (side effects)</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>{{ 'a?.[key]' }}</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ 'a?.[key] ?? null' }}</code></div>
+            <div class="reason">Keyed access: not a simple property chain</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>{{ 'a?.b | pipe' }}</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ 'a?.b ?? null | pipe' }}</code></div>
+            <div class="reason">Pipe transform: best-effort fallback needed</div>
+          </div>
+
+          <div class="example-row">
+            <div class="before"><code>{{ 'a?.b?.method()?.c' }}</code></div>
+            <div class="arrow">&rarr;</div>
+            <div class="after"><code>{{ 'a?.b?.method()?.c ?? null' }}</code></div>
+            <div class="reason">Mixed chain with method: can't fully decompose</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HOST BINDINGS GAP -->
+      <div class="host-bindings-section">
+        <h3>&#x26A0;&#xFE0F; Known Gap: Host Bindings Always Use Legacy Semantics</h3>
+        <p class="group-description">
+          Even with <code>strictOptionalChainingSemantics: true</code>, host binding expressions
+          (<code>&#64;Component.host</code>, <code>&#64;Directive.host</code>, <code>&#64;HostBinding</code>)
+          always use legacy semantics (returning <code>null</code>).
+        </p>
+
         <div class="example-row">
-          <div class="before"><code>{{ '{{ a?.b }}' }}</code></div>
-          <div class="arrow">-></div>
-          <div class="after"><code>{{ '{{ a?.b }}' }}</code></div>
-          <div class="reason">Interpolation is safe (null and undefined render the same)</div>
+          <div class="before"><code>template: '{{ '{{ user?.name }}' }}'</code></div>
+          <div class="arrow">&rarr;</div>
+          <div class="after"><code>Returns <strong>undefined</strong> (native)</code></div>
+          <div class="reason">Template expressions respect the setting</div>
         </div>
         <div class="example-row">
-          <div class="before"><code>{{ '{{ a?.b === null }}' }}</code></div>
-          <div class="arrow">-></div>
-          <div class="after"><code>{{ '{{ (a != null ? a.b : null) === null }}' }}</code></div>
-          <div class="reason">Strict equality needs a ternary guard</div>
+          <div class="before"><code>host: {{ '{' }}'[style.color]': 'theme?.primaryColor'{{ '}' }}</code></div>
+          <div class="arrow">&rarr;</div>
+          <div class="after"><code>Returns <strong>null</strong> (legacy!)</code></div>
+          <div class="reason">Host bindings always use HostBindingCompilationJob</div>
+        </div>
+        <div class="example-row">
+          <div class="before"><code>host: {{ '{' }}'[attr.title]': '"Hello " + user?.name'{{ '}' }}</code></div>
+          <div class="arrow">&rarr;</div>
+          <div class="after"><code>"Hello null" (not "Hello undefined")</code></div>
+          <div class="reason">String concatenation with null vs undefined differs</div>
+        </div>
+
+        <div class="note-box gap-note">
+          <div class="status-highlight">
+            <span class="status-icon">&#x1F6E0;&#xFE0F;</span>
+            <strong>Status:</strong> This gap is already in progress of being fixed and should work correctly when ready!
+          </div>
+          <p><strong>Root cause:</strong> <code>HostBindingCompilationJob</code> is NOT an instance of
+            <code>ComponentCompilationJob</code>, so <code>useJsSemantics</code> is always <code>false</code>
+            in <code>expand_safe_reads.ts</code>.</p>
+          <p><strong>Affected:</strong> Component host bindings, directive host bindings, hostDirective bindings,
+            &#64;HostBinding decorators.</p>
+          <p><strong>Migration schematic:</strong> Also misses host bindings — only visits <code>template</code>
+            and <code>templateUrl</code> properties.</p>
+        </div>
+      </div>
+
+      <!-- INLAY HINTS TIE-IN -->
+      <div class="inlay-hints-section">
+        <h3>&#x1F4A1; Inlay Hints Make the Difference Visible</h3>
+        <p class="group-description">
+          With <strong>inlay hints</strong> enabled, the <code>null</code> vs <code>undefined</code>
+          difference is immediately visible next to every <code>?.</code> usage in the editor —
+          without running the app.
+        </p>
+
+        <div class="example-row">
+          <div class="before"><code>{{ '{{ user?.name }}' }}<span class="native-hint">: string | undefined</span></code></div>
+          <div class="arrow">vs</div>
+          <div class="after"><code>{{ '{{ user?.name }}' }}<span class="legacy-hint">: string | null</span></code></div>
+          <div class="reason">Inlay hint reveals semantics at a glance</div>
+        </div>
+
+        <div class="note-box">
+          See the <strong>Inlay Hints</strong> demo for the complete reference of all 118 test scenarios
+          and 25 configuration options.
+        </div>
+      </div>
+
+      <!-- Community Issues Section -->
+      <div class="issues-section">
+        <h3>Community Issues Addressed</h3>
+        <p class="issues-intro">
+          These changes address longstanding community requests dating back to 2019:
+        </p>
+
+        <div class="issue-card">
+          <div class="issue-header">
+            <a class="issue-link" href="https://github.com/angular/angular/issues/34385" target="_blank">#34385</a>
+            <span class="issue-title">Align with the optional chaining spec</span>
+          </div>
+          <p class="issue-desc">
+            Requests that template <code>?.</code> match TC39 semantics (return <code>undefined</code> on short-circuit).
+            Documents that generated TCB and runtime diverge from modern JS, and links to historical safe-navigation behavior.
+          </p>
+          <div class="issue-tags">
+            <span class="tag">runtime</span>
+            <span class="tag">type</span>
+            <span class="tag">migration</span>
+            <span class="tag">safe-navigation</span>
+          </div>
+          <p class="addressed">
+            <strong>Addressed by:</strong> <code>optionalChainingSemantics: 'native'</code> per-component
+            and <code>strictOptionalChainingSemantics: true</code> project-wide setting.
+          </p>
+        </div>
+
+        <div class="issue-card">
+          <div class="issue-header">
+            <a class="issue-link" href="https://github.com/angular/angular/issues/37622" target="_blank">#37622</a>
+            <span class="issue-title">optional chaining uses 'null', but strictTemplates treats it as 'undefined'</span>
+          </div>
+          <p class="issue-desc">
+            <code>foo?.bar</code> yields <code>null</code> at runtime, but strict template checking infers
+            <code>undefined</code>. This means declared inputs may accept the wrong union type,
+            causing confusing type errors.
+          </p>
+          <div class="issue-tags">
+            <span class="tag">runtime</span>
+            <span class="tag">type</span>
+            <span class="tag">compiler</span>
+          </div>
+          <p class="addressed">
+            <strong>Addressed by:</strong> Native semantics aligns runtime (<code>undefined</code>) with what TypeScript's
+            type checker expects, eliminating the null/undefined mismatch.
+          </p>
+        </div>
+
+        <div class="issue-card">
+          <div class="issue-header">
+            <a class="issue-link" href="https://github.com/angular/angular/issues/37619" target="_blank">#37619</a>
+            <span class="issue-title">strictTemplates + strictNullChecks doesn't work well with optional chaining</span>
+          </div>
+          <p class="issue-desc">
+            Strictness flags plus <code>?.</code> trigger "Object is possibly 'undefined'" diagnostics
+            even though runtime guards exist. Points to TCB generation and upstream compiler/type-checking limitations.
+          </p>
+          <div class="issue-tags">
+            <span class="tag">type</span>
+            <span class="tag">migration</span>
+            <span class="tag">partial-compilation</span>
+          </div>
+          <p class="addressed">
+            <strong>Addressed by:</strong> With native semantics, the TCB correctly models the runtime return type
+            as <code>T | undefined</code>, matching TypeScript's own <code>?.</code> type narrowing.
+          </p>
         </div>
       </div>
     </div>
@@ -299,6 +649,15 @@ export class NativeChainingComponent {
       padding: 20px; border-radius: 8px; margin: 20px 0;
     }
     .examples-section h3 { color: var(--adev-text); border-bottom: 1px solid var(--adev-border); padding-bottom: 8px; }
+    .example-group { margin: 16px 0; padding: 16px; border-radius: 8px; }
+    .example-group.safe { background: rgba(74, 222, 128, 0.06); border: 1px solid rgba(74, 222, 128, 0.2); }
+    .example-group.sensitive { background: rgba(248, 113, 113, 0.06); border: 1px solid rgba(248, 113, 113, 0.2); }
+    .example-group.best-effort { background: rgba(251, 191, 36, 0.06); border: 1px solid rgba(251, 191, 36, 0.2); }
+    .example-group h4 { margin-top: 0; }
+    .safe h4 { color: var(--adev-success); }
+    .sensitive h4 { color: var(--adev-error); }
+    .best-effort h4 { color: var(--adev-warning); }
+    .group-description { font-size: 13px; color: var(--adev-text-secondary); margin-bottom: 12px; }
     .example-row {
       display: grid; grid-template-columns: 1fr auto 1fr 1fr;
       gap: 8px; align-items: center;
@@ -309,6 +668,73 @@ export class NativeChainingComponent {
     .example-row .before code { color: var(--adev-error); }
     .example-row .after code { color: var(--adev-success); }
     .example-row .reason { color: var(--adev-text-tertiary); font-size: 12px; font-style: italic; }
+    .issues-section {
+      background: rgba(167, 139, 250, 0.06); border: 1px solid rgba(167, 139, 250, 0.2);
+      padding: 20px; border-radius: 8px; margin: 20px 0;
+    }
+    .issues-section h3 { color: var(--adev-accent); border-bottom: 1px solid var(--adev-border); padding-bottom: 8px; }
+    .issues-intro { font-size: 13px; color: var(--adev-text-secondary); }
+    .issue-card {
+      background: var(--adev-surface); border: 1px solid var(--adev-border);
+      padding: 16px; border-radius: 8px; margin: 12px 0;
+    }
+    .issue-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .issue-link {
+      background: var(--adev-accent); color: #0f0f11; padding: 2px 8px;
+      border-radius: 4px; font-size: 12px; font-weight: 700;
+      text-decoration: none;
+    }
+    .issue-link:hover { opacity: 0.85; }
+    .issue-title { font-weight: 600; color: var(--adev-text); font-size: 14px; }
+    .issue-desc { font-size: 13px; color: var(--adev-text-secondary); line-height: 1.6; }
+    .issue-tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+    .tag {
+      background: rgba(167, 139, 250, 0.12); color: var(--adev-accent); padding: 2px 8px;
+      border-radius: 6px; font-size: 11px; font-weight: 600;
+    }
+    .addressed {
+      background: rgba(74, 222, 128, 0.08); border-left: 3px solid var(--adev-success);
+      padding: 8px 12px; border-radius: 6px; font-size: 13px;
+      color: var(--adev-success); margin-bottom: 0;
+    }
+    .host-bindings-section {
+      background: rgba(251, 191, 36, 0.06); border: 1px solid rgba(251, 191, 36, 0.2);
+      padding: 20px; border-radius: 8px; margin: 20px 0;
+    }
+    .host-bindings-section h3 { color: var(--adev-warning); }
+    .gap-note { margin-top: 12px; }
+    .gap-note p { margin: 4px 0; font-size: 13px; }
+    .status-highlight {
+      background: linear-gradient(135deg, rgba(74, 222, 128, 0.1), rgba(34, 197, 94, 0.05));
+      border: 2px solid var(--adev-success);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--adev-success);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(74, 222, 128, 0.15);
+    }
+    .status-icon {
+      font-size: 18px;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    .note-box { background: var(--adev-surface); border: 1px solid var(--adev-border); border-left: 3px solid var(--adev-info);
+      border-radius: 8px; padding: 14px 16px; font-size: 14px; color: var(--adev-text-secondary); line-height: 1.6; }
+    .inlay-hints-section {
+      background: rgba(240, 160, 200, 0.06); border: 1px solid rgba(240, 160, 200, 0.2);
+      padding: 20px; border-radius: 8px; margin: 20px 0;
+    }
+    .inlay-hints-section h3 { color: var(--adev-primary); }
+    .native-hint { color: #22c55e; font-style: italic; opacity: 0.7; }
+    .legacy-hint { color: #fb923c; font-style: italic; opacity: 0.7; }
     @media (max-width: 768px) {
       .side-by-side { grid-template-columns: 1fr; }
       .example-row { grid-template-columns: 1fr; gap: 4px; }
