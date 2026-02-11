@@ -1,0 +1,42 @@
+<header class="app-header">
+  <div class="header-left">
+    <button mat-icon-button (click)="sidenavOpened.set(!sidenavOpened())" class="menu-btn">
+      <mat-icon>menu</mat-icon>
+    </button>
+    <div class="brand">
+      <img
+        src="https://angular.dev/assets/images/press-kit/angular_icon_gradient.gif"
+        alt="Angular"
+        class="brand-logo"
+      />
+      <span class="brand-text">Angular Template Upgrades</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="version-badge">v21.2.0-next</span>
+  </div>
+</header>
+
+<div class="app-body">
+  <nav class="sidebar" [class.collapsed]="!sidenavOpened()">
+    <div class="nav-section-label">Demos</div>
+    @for (item of navItems; track item.id) {
+      <a
+        class="nav-item"
+        [routerLink]="item.path"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{exact: item.path === '/'}"
+      >
+        <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
+        <span class="nav-label">{{ item.label }}</span>
+        @if (item.badge) {
+          <span class="nav-badge">{{ item.badge }}</span>
+        }
+      </a>
+    }
+  </nav>
+
+  <main class="content">
+    <router-outlet />
+  </main>
+</div>
